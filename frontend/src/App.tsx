@@ -10,6 +10,8 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useVoiceWake } from './hooks/useVoiceWake';
 import { useChatStore } from './store/chatStore';
 
+import { getApiUrl } from './config/api';
+
 export const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { activeNav, fetchInitialState, currentModel } = useChatStore();
@@ -63,7 +65,7 @@ export const App: React.FC = () => {
     let lastHandledTs = Date.now() / 1000;
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('/api/voice/wake');
+        const res = await fetch(getApiUrl('/api/voice/wake'));
         if (res.ok) {
           const data = await res.json();
           if (data.timestamp && data.timestamp > lastHandledTs) {
