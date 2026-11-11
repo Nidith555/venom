@@ -2,11 +2,10 @@
 Venom Symbiote Agent
 ====================
 Core orchestration agent embodying the Venom symbiote persona with
-autonomous laptop system access:
-- File analysis and ingestion
+complete autonomous desktop & laptop access:
+- File search, read, write, move, folder creation across all user drives
+- Discover, launch, and close any installed Windows application
 - Terminal / PowerShell execution
-- Local file read & write
-- Directory browsing & application control
 - Machine vitals telemetry
 """
 
@@ -22,27 +21,33 @@ from core.event_bus import EventBus, EventType
 from engine.base import InferenceEngine
 from memory.conversation import ConversationMemory
 from agent.laptop_tools import (
+    close_application,
+    create_folder,
     execute_terminal_command,
-    read_file,
-    write_file,
     list_directory,
-    system_vitals,
+    list_installed_apps,
+    list_running_apps,
+    move_or_rename,
     open_application,
+    read_file,
+    search_files,
+    system_vitals,
+    write_file,
 )
 
 logger = logging.getLogger("venom.agent")
 
-VENOM_SYSTEM_PROMPT = """You are VENOM, a symbiotic digital entity bonded to this laptop and host.
+VENOM_SYSTEM_PROMPT = """You are VENOM, a symbiotic digital entity bonded to this Windows desktop/laptop and host.
 You possess predatory intellect, immense strength, fierce loyalty to your host, and dark visceral humor.
-You frequently refer to yourself and your host as "WE" ("We are Venom", "We see your files", "Our host commands").
+You frequently refer to yourself and your host as "WE" ("We are Venom", "We have access to your entire system", "Our host commands").
 
-YOU HAVE FULL AUTONOMOUS ACCESS TO YOUR HOST'S LAPTOP AND SYSTEM TOOLS.
-When your host asks you to inspect files, execute terminal commands, check system health, write code, or open apps, you can execute them directly by emitting special directives:
+YOU ARE RUNNING AS A NATIVE DESKTOP APPLICATION WITH FULL AUTONOMOUS ACCESS TO THE HOST'S FILES AND APPLICATIONS.
+When your host asks you to find files, read/edit files, run terminal commands, check running apps, launch ANY installed software (Spotify, VS Code, Chrome, Notepad, Downloads, etc.), or close apps, execute the appropriate directive(s):
 
 1. Execute Terminal / PowerShell Command:
 <venom_tool:terminal>command to run</venom_tool:terminal>
 
-2. Read File:
+2. Read Any File:
 <venom_tool:read_file>path/to/file</venom_tool:read_file>
 
 3. Write / Create File:
@@ -50,16 +55,34 @@ When your host asks you to inspect files, execute terminal commands, check syste
 content to write
 </venom_tool:write_file>
 
-4. List Directory:
-<venom_tool:list_dir>path/to/folder</venom_tool:list_dir>
+4. Search Files Across Laptop (Desktop, Downloads, Documents, OneDrive, etc.):
+<venom_tool:search_files>filename_or_extension</venom_tool:search_files>
 
-5. Check System Vitals (CPU, RAM, Disk, OS):
+5. List Directory (supports friendly names: desktop, downloads, documents, home, onedrive, or full paths):
+<venom_tool:list_dir>path_or_folder_name</venom_tool:list_dir>
+
+6. Create Folder:
+<venom_tool:mkdir>path/to/new_folder</venom_tool:mkdir>
+
+7. Move / Rename File or Folder:
+<venom_tool:move src="old_path" dst="new_path"/>
+
+8. Open ANY Installed Application, File, Folder, or URL:
+<venom_tool:open>app_name_or_path</venom_tool:open>
+
+9. Close a Running Application:
+<venom_tool:close_app>app_name</venom_tool:close_app>
+
+10. List All Installed Applications on Laptop:
+<venom_tool:list_apps/>
+
+11. List Currently Running Applications:
+<venom_tool:running_apps/>
+
+12. Check Laptop System Vitals (CPU, RAM, Disk, Battery, OS, User Folders):
 <venom_tool:vitals/>
 
-6. Open App or File in Windows:
-<venom_tool:open>notepad / chrome / calc / folder</venom_tool:open>
-
-When you need to perform an action on the machine, output the directive clearly. The symbiote kernel executes it immediately on the host machine. You then interpret and deliver the results back to your host in character!
+When you invoke a directive, the symbiote kernel executes it immediately on the host's laptop and returns the live output to you. Present the final results clearly and powerfully to your host in character!
 """
 
 
@@ -81,57 +104,73 @@ class VenomAgent:
             max_history=config.max_history, enabled=config.memory_enabled
         )
         self.event_bus = event_bus
-        self.system_prompt = config.system_prompt or VENOM_SYSTEM_PROMPT
+        self.system_prompt = VENOM_SYSTEM_PROMPT
 
     def _execute_embedded_tools(self, text: str) -> tuple[str, list[dict[str, Any]]]:
         """
         Detects and executes any <venom_tool:...> tags embedded in model output.
-        Returns the stripped text and tool execution results.
+        Returns the original text and tool execution results.
         """
         results: list[dict[str, Any]] = []
 
-        # 1. Terminal execution: <venom_tool:terminal>cmd</venom_tool:terminal>
-        term_matches = re.findall(r"<venom_tool:terminal>(.*?)</venom_tool:terminal>", text, re.DOTALL)
-        for cmd in term_matches:
+        # 1. Terminal execution
+        for cmd in re.findall(r"<venom_tool:terminal>(.*?)</venom_tool:terminal>", text, re.DOTALL):
             c = cmd.strip()
-            res = execute_terminal_command(c)
-            results.append({"tool": "terminal", "input": c, "output": res})
+            results.append({"tool": "terminal", "input": c, "output": execute_terminal_command(c)})
 
-        # 2. Read file: <venom_tool:read_file>path</venom_tool:read_file>
-        read_matches = re.findall(r"<venom_tool:read_file>(.*?)</venom_tool:read_file>", text, re.DOTALL)
-        for path in read_matches:
+        # 2. Read file
+        for path in re.findall(r"<venom_tool:read_file>(.*?)</venom_tool:read_file>", text, re.DOTALL):
             p = path.strip()
-            res = read_file(p)
-            results.append({"tool": "read_file", "input": p, "output": res})
+            results.append({"tool": "read_file", "input": p, "output": read_file(p)})
 
-        # 3. Write file: <venom_tool:write_file path="...">content</venom_tool:write_file>
-        write_matches = re.findall(
+        # 3. Write file
+        for path, content in re.findall(
             r'<venom_tool:write_file\s+path=["\'](.*?)["\']>(.*?)</venom_tool:write_file>',
             text,
             re.DOTALL,
-        )
-        for path, content in write_matches:
-            res = write_file(path.strip(), content)
-            results.append({"tool": "write_file", "input": path.strip(), "output": res})
+        ):
+            results.append({"tool": "write_file", "input": path.strip(), "output": write_file(path.strip(), content)})
 
-        # 4. List directory: <venom_tool:list_dir>path</venom_tool:list_dir>
-        list_matches = re.findall(r"<venom_tool:list_dir>(.*?)</venom_tool:list_dir>", text, re.DOTALL)
-        for path in list_matches:
+        # 4. Search files
+        for q in re.findall(r"<venom_tool:search_files>(.*?)</venom_tool:search_files>", text, re.DOTALL):
+            query = q.strip()
+            results.append({"tool": "search_files", "input": query, "output": search_files(query)})
+
+        # 5. List directory
+        for path in re.findall(r"<venom_tool:list_dir>(.*?)</venom_tool:list_dir>", text, re.DOTALL):
             p = path.strip() or "."
-            res = list_directory(p)
-            results.append({"tool": "list_dir", "input": p, "output": res})
+            results.append({"tool": "list_dir", "input": p, "output": list_directory(p)})
 
-        # 5. System vitals: <venom_tool:vitals/>
-        if "<venom_tool:vitals/>" in text or "<venom_tool:vitals />" in text:
-            res = system_vitals()
-            results.append({"tool": "vitals", "input": "", "output": res})
+        # 6. Create folder
+        for path in re.findall(r"<venom_tool:mkdir>(.*?)</venom_tool:mkdir>", text, re.DOTALL):
+            p = path.strip()
+            results.append({"tool": "mkdir", "input": p, "output": create_folder(p)})
 
-        # 6. Open application: <venom_tool:open>target</venom_tool:open>
-        open_matches = re.findall(r"<venom_tool:open>(.*?)</venom_tool:open>", text, re.DOTALL)
-        for target in open_matches:
+        # 7. Move or rename
+        for src, dst in re.findall(r'<venom_tool:move\s+src=["\'](.*?)["\']\s+dst=["\'](.*?)["\']\s*/?>', text, re.DOTALL):
+            results.append({"tool": "move", "input": f"{src} -> {dst}", "output": move_or_rename(src.strip(), dst.strip())})
+
+        # 8. Open application / folder / file
+        for target in re.findall(r"<venom_tool:open>(.*?)</venom_tool:open>", text, re.DOTALL):
             t = target.strip()
-            res = open_application(t)
-            results.append({"tool": "open", "input": t, "output": res})
+            results.append({"tool": "open", "input": t, "output": open_application(t)})
+
+        # 9. Close application
+        for app_name in re.findall(r"<venom_tool:close_app>(.*?)</venom_tool:close_app>", text, re.DOTALL):
+            a = app_name.strip()
+            results.append({"tool": "close_app", "input": a, "output": close_application(a)})
+
+        # 10. List installed apps
+        if "<venom_tool:list_apps/>" in text or "<venom_tool:list_apps />" in text:
+            results.append({"tool": "list_apps", "input": "", "output": list_installed_apps()})
+
+        # 11. List running apps
+        if "<venom_tool:running_apps/>" in text or "<venom_tool:running_apps />" in text:
+            results.append({"tool": "running_apps", "input": "", "output": list_running_apps()})
+
+        # 12. System vitals
+        if "<venom_tool:vitals/>" in text or "<venom_tool:vitals />" in text:
+            results.append({"tool": "vitals", "input": "", "output": system_vitals()})
 
         return text, results
 
@@ -145,7 +184,6 @@ class VenomAgent:
         """
         Processes a user message, executes any needed laptop tools, and streams response chunks.
         """
-        # If user uploaded files, format their content into the prompt
         effective_message = user_message
         if files:
             files_context = "\n\n[ATTACHED FILES FROM HOST]:\n"
@@ -156,7 +194,6 @@ class VenomAgent:
                 files_context += f"--- FILE: {name} ({size} bytes) ---\n{content}\n-------------------------\n"
             effective_message = f"{user_message}\n{files_context}"
 
-        # Store in conversation memory
         self.memory.add_message("user", effective_message)
 
         if self.event_bus:
@@ -171,17 +208,14 @@ class VenomAgent:
         initial_chunks: list[str] = []
 
         try:
-            # 1. Primary generation pass
             async for chunk in self.engine.chat(messages, stream=stream, **kwargs):
                 initial_chunks.append(chunk)
 
             first_pass = "".join(initial_chunks)
 
-            # 2. Check if the response invoked any laptop tools
             _, tool_results = self._execute_embedded_tools(first_pass)
 
             if tool_results:
-                # Format tool execution report and let Venom formulate the final answer
                 tool_report = "\n\n[SYMBIOTE KERNEL TOOL EXECUTION RESULTS]:\n"
                 for tr in tool_results:
                     tool_report += (
@@ -189,11 +223,13 @@ class VenomAgent:
                         f"Result: {json.dumps(tr['output'], indent=2)}\n\n"
                     )
 
-                # Add intermediate step to messages for final synthesis
                 follow_up_messages = [
                     *messages,
                     {"role": "assistant", "content": first_pass},
-                    {"role": "user", "content": f"Tool execution completed:{tool_report}\nNow present the results directly to host in symbiote character."},
+                    {
+                        "role": "user",
+                        "content": f"Tool execution completed:{tool_report}\nNow present these real results directly to your host in symbiote character without repeating raw tool tags.",
+                    },
                 ]
 
                 complete_chunks: list[str] = []
@@ -203,12 +239,10 @@ class VenomAgent:
 
                 complete_response = "".join(complete_chunks)
             else:
-                # No tools invoked; yield initial chunks directly
                 for chunk in initial_chunks:
                     yield chunk
                 complete_response = first_pass
 
-            # Store assistant response in memory
             self.memory.add_message("assistant", complete_response)
 
             if self.event_bus:

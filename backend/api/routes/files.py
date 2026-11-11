@@ -17,10 +17,17 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from agent.laptop_tools import (
+    close_application,
+    create_folder,
     execute_terminal_command,
+    get_user_folders,
     list_directory,
+    list_installed_apps,
+    list_running_apps,
+    move_or_rename,
     open_application,
     read_file,
+    search_files,
     system_vitals,
     write_file,
 )
@@ -147,3 +154,55 @@ async def api_list_dir(payload: ListDirRequest):
 async def api_open_app(payload: OpenAppRequest):
     """Launch an application or open a file/folder in Explorer."""
     return open_application(payload.target)
+
+
+class SearchFilesRequest(BaseModel):
+    query: str = Field(..., description="File name or pattern to search")
+    directory: str = Field(default="", description="Optional root directory or folder key (desktop, downloads, documents)")
+
+
+class MoveRequest(BaseModel):
+    source: str
+    destination: str
+
+
+@router.get("/system/apps/installed")
+async def api_installed_apps():
+    """List installed Windows applications from Start Menu and Microsoft Store."""
+    return list_installed_apps()
+
+
+@router.get("/system/apps/running")
+async def api_running_apps():
+    """List currently running windowed applications."""
+    return list_running_apps()
+
+
+@router.post("/system/apps/close")
+async def api_close_app(payload: OpenAppRequest):
+    """Force close a running application."""
+    return close_application(payload.target)
+
+
+@router.post("/system/files/search")
+async def api_search_files(payload: SearchFilesRequest):
+    """Search for files across user folders or a custom directory."""
+    return search_files(payload.query, payload.directory)
+
+
+@router.get("/system/folders")
+async def api_user_folders():
+    """Get paths to standard user directories (Desktop, Downloads, Documents, etc.)."""
+    return {"success": True, "folders": get_user_folders()}
+
+
+@router.post("/system/mkdir")
+async def api_create_folder(payload: ListDirRequest):
+    """Create a folder on the host machine."""
+    return create_folder(payload.path)
+
+
+@router.post("/system/move")
+async def api_move_file(payload: MoveRequest):
+    """Move or rename a file or folder."""
+    return move_or_rename(payload.source, payload.destination)
