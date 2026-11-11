@@ -30,7 +30,11 @@ from engine.engine_factory import create_engine
 from agent.venom_agent import VenomAgent
 from api.app import create_app
 
-app = typer.Typer(
+# Default FastAPI ASGI application instance for uvicorn/Render/production
+app = create_app()
+fastapi_app = app
+
+cli = typer.Typer(
     name="venom",
     help="🕷️ VENOM — Marvel Symbiote-Themed AI Assistant",
     no_args_is_help=True,
@@ -52,7 +56,7 @@ def print_banner():
     console.print(VENOM_ASCII)
 
 
-@app.command()
+@cli.command()
 def serve(
     host: str = typer.Option(None, "--host", "-h", help="Bind host address"),
     port: int = typer.Option(None, "--port", "-p", help="Bind port"),
@@ -79,11 +83,11 @@ def serve(
         )
     )
 
-    fastapi_app = create_app(cfg)
-    uvicorn.run(fastapi_app, host=bind_host, port=bind_port, log_level="info")
+    srv_app = create_app(cfg)
+    uvicorn.run(srv_app, host=bind_host, port=bind_port, log_level="info")
 
 
-@app.command()
+@cli.command()
 def status():
     """Check connectivity to the symbiote inference engine."""
     setup_logging()
@@ -113,7 +117,7 @@ def status():
     asyncio.run(_check())
 
 
-@app.command()
+@cli.command()
 def chat():
     """Interactive command-line chat session with Venom."""
     setup_logging()
@@ -148,4 +152,4 @@ def chat():
 
 
 if __name__ == "__main__":
-    app()
+    cli()

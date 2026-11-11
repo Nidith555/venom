@@ -12,6 +12,7 @@ from agent.venom_agent import VenomAgent
 router = APIRouter()
 
 
+@router.get("/health")
 @router.get("/api/health")
 async def health_check(request: Request):
     """Vitals check for Venom symbiote server and underlying engine."""
