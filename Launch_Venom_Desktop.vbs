@@ -5,4 +5,4 @@ pythonExe = currentDir & "\backend\.venv\Scripts\pythonw.exe"
 If Not fso.FileExists(pythonExe) Then
     pythonExe = currentDir & "\backend\.venv\Scripts\python.exe"
 End If
-WshShell.Run """" & pythonExe & """ """ & currentDir & "\desktop_app.py""", 0, False
+WshShell.Run """" & pythonExe & """ """ & currentDir & "\desktop_app.py""", 1, False

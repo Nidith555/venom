@@ -68,12 +68,17 @@ def find_app_browser() -> str | None:
 
 def open_venom_window(url: str = APP_URL):
     """Open or bring to foreground the standalone Venom Desktop Window."""
-    # 1. Try activating an existing VENOM desktop window first
+    # 1. Check specifically for an already-open Chrome/Edge Venom App window
     if os.name == "nt":
         try:
             ps_script = (
+                "$p = Get-Process chrome, msedge -ErrorAction SilentlyContinue | "
+                "Where-Object { $_.MainWindowTitle -like '*VENOM — We Are Symbiote*' } | Select-Object -First 1; "
+                "if ($p) { "
                 "$wshell = New-Object -ComObject Wscript.Shell; "
-                "if ($wshell.AppActivate('VENOM')) { exit 0 } else { exit 1 }"
+                "if ($wshell.AppActivate($p.Id)) { exit 0 } "
+                "} "
+                "exit 1"
             )
             res = subprocess.run(
                 ["powershell", "-NoProfile", "-Command", ps_script],
@@ -85,11 +90,21 @@ def open_venom_window(url: str = APP_URL):
         except Exception:
             pass
 
-    # 2. Launch standalone App Window (no tabs, no address bar, dedicated profile for instant focus)
+    # 2. Launch standalone App Window (no tabs, no address bar, dedicated profile in LocalAppData)
     browser = find_app_browser()
     if browser:
-        profile_dir = ROOT_DIR / ".venom_desktop_profile"
-        profile_dir.mkdir(exist_ok=True)
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        profile_dir = Path(local_app_data) / "VenomDesktopProfile" if local_app_data else (ROOT_DIR / ".venom_desktop_profile")
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        
+        popen_kwargs: dict = {}
+        if os.name == "nt":
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            si.wShowWindow = 1  # SW_SHOWNORMAL
+            popen_kwargs["startupinfo"] = si
+            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+
         subprocess.Popen(
             [
                 browser,
@@ -100,7 +115,7 @@ def open_venom_window(url: str = APP_URL):
                 "--no-first-run",
                 "--no-default-browser-check",
             ],
-            creationflags=subprocess.DETACHED_PROCESS if os.name == "nt" else 0,
+            **popen_kwargs,
         )
         # Ensure OS foreground activation
         if os.name == "nt":
