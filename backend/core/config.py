@@ -6,6 +6,7 @@ Supports environment variables and .env file loading with VENOM_ prefix.
 """
 
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from pydantic import Field, field_validator
 from typing import Optional
@@ -103,7 +104,10 @@ class VenomConfig(BaseSettings):
         return v
 
     model_config = {
-        "env_file": ".env",
+        "env_file": [
+            ".env",
+            str(Path(__file__).resolve().parent.parent / ".env"),
+        ],
         "env_prefix": "VENOM_",
         "case_sensitive": False,
         "extra": "ignore",
