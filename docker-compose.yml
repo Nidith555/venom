@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  venom-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "7777:7777"
+    environment:
+      - VENOM_ENGINE=${VENOM_ENGINE:-ollama}
+      - VENOM_MODEL=${VENOM_MODEL:-llama3.2}
+      - VENOM_OLLAMA_URL=http://ollama:11434
+      - VENOM_OPENAI_API_KEY=${VENOM_OPENAI_API_KEY:-}
+      - VENOM_GEMINI_API_KEY=${VENOM_GEMINI_API_KEY:-}
+      - VENOM_ELEVENLABS_API_KEY=${VENOM_ELEVENLABS_API_KEY:-}
+      - VENOM_ELEVENLABS_VOICE_ID=${VENOM_ELEVENLABS_VOICE_ID:-cgSgspJ2msm6clMCkdW9}
+      - VENOM_DEBUG=${VENOM_DEBUG:-false}
+    depends_on:
+      - ollama
+    networks:
+      - symbiote-net
+    restart: unless-stopped
+
+  venom-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - venom-backend
+    networks:
+      - symbiote-net
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - symbiote-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  ollama-data:
+
+networks:
+  symbiote-net:
+    driver: bridge

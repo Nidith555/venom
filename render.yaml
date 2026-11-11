@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: venom-backend
+    env: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py serve --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: VENOM_ENGINE
+        value: gemini
+      - key: VENOM_MODEL
+        value: gemini-1.5-flash
+      - key: VENOM_GEMINI_API_KEY
+        sync: false
+      - key: VENOM_ELEVENLABS_API_KEY
+        sync: false
+      - key: VENOM_ELEVENLABS_VOICE_ID
+        value: cgSgspJ2msm6clMCkdW9
+      - key: VENOM_ELEVENLABS_MODEL_ID
+        value: eleven_multilingual_v2

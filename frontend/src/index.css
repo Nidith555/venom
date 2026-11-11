@@ -1,0 +1,433 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   VENOM DESIGN SYSTEM — CSS CUSTOM PROPERTIES
+   ============================================ */
+:root {
+  --symbiote-black: #000000;
+  --symbiote-dark: #0a0a0a;
+  --symbiote-panel: #111214;
+  --symbiote-surface: #1a1c1e;
+  --symbiote-border: #222426;
+
+  --web-white: #f4f4f6;
+  --web-dim: #e8e8ea;
+  --web-muted: #9a9a9e;
+  --web-faint: #3a3a3e;
+
+  --klyntar-green: #00ff66;
+  --klyntar-dim: rgba(0, 255, 102, 0.15);
+  --carnage-red: #ff0033;
+  --carnage-dim: rgba(255, 0, 51, 0.15);
+
+  --font-heading: 'Orbitron', sans-serif;
+  --font-body: 'JetBrains Mono', monospace;
+
+  --border-thin: 0.5px solid rgba(244, 244, 246, 0.12);
+  --border-normal: 1px solid rgba(244, 244, 246, 0.15);
+  --border-bright: 1px solid rgba(244, 244, 246, 0.35);
+  --border-glow: 1px solid rgba(244, 244, 246, 0.5);
+
+  --shadow-web: 0 0 20px rgba(244, 244, 246, 0.07);
+  --shadow-klyntar: 0 0 20px rgba(0, 255, 102, 0.3);
+  --shadow-carnage: 0 0 20px rgba(255, 0, 51, 0.3);
+}
+
+/* ============================================
+   GLOBAL RESET & BASE
+   ============================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--symbiote-black);
+  color: var(--web-white);
+  font-family: var(--font-body);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================
+   WEB-PATTERN BACKGROUND
+   ============================================ */
+.web-bg {
+  background-color: var(--symbiote-black);
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(0, 255, 102, 0.015) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(244, 244, 246, 0.015) 0%, transparent 50%),
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 60px 60px, 60px 60px;
+  animation: web-crawl 12s linear infinite;
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--symbiote-black);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(244, 244, 246, 0.2);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 244, 246, 0.4);
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+h1, h2, h3, h4, h5, h6,
+.font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: 0.05em;
+}
+
+code, pre, .font-mono {
+  font-family: var(--font-body);
+}
+
+/* ============================================
+   KEYFRAME ANIMATIONS
+   ============================================ */
+@keyframes tendril-pulse {
+  0%, 100% { opacity: 0.3; transform: scaleY(1) scaleX(1); }
+  50% { opacity: 0.75; transform: scaleY(1.04) scaleX(1.01); }
+}
+
+@keyframes symbiote-breathe {
+  0%, 100% { opacity: 0.65; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.025); }
+}
+
+@keyframes web-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes web-crawl {
+  0% { background-position: 0 0, 0 0, 0 0, 0 0; }
+  100% { background-position: 0 0, 0 0, 60px 60px, 60px 60px; }
+}
+
+@keyframes glitch-text {
+  0%, 88%, 100% {
+    transform: translate(0);
+    text-shadow: 0 0 8px rgba(244, 244, 246, 0.4);
+  }
+  90% {
+    transform: translate(-2px, 0);
+    text-shadow: -2px 0 var(--carnage-red), 2px 0 var(--klyntar-green);
+  }
+  92% {
+    transform: translate(2px, 0);
+    text-shadow: 2px 0 var(--carnage-red), -2px 0 var(--klyntar-green);
+  }
+  94% {
+    transform: translate(-1px, 1px);
+    text-shadow: -1px 0 var(--carnage-red);
+  }
+  96% {
+    transform: translate(1px, -1px);
+    text-shadow: 1px 0 var(--klyntar-green);
+  }
+  98% {
+    transform: translate(0);
+    text-shadow: 0 0 12px rgba(244, 244, 246, 0.6);
+  }
+}
+
+@keyframes tendril-crawl {
+  0% { stroke-dashoffset: 1000; opacity: 0; }
+  20% { opacity: 0.5; }
+  80% { opacity: 0.5; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-left {
+  0% { opacity: 0; transform: translateX(-24px) skewY(1deg); }
+  100% { opacity: 1; transform: translateX(0) skewY(0); }
+}
+
+@keyframes slide-in-right {
+  0% { opacity: 0; transform: translateX(24px) skewY(-1deg); }
+  100% { opacity: 1; transform: translateX(0) skewY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(0, 255, 102, 0.4); }
+  50% { box-shadow: 0 0 14px rgba(0, 255, 102, 0.9), 0 0 28px rgba(0, 255, 102, 0.3); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes symbiote-load {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+@keyframes tendril-assemble {
+  0% { stroke-dashoffset: 400; opacity: 0; }
+  60% { opacity: 0.8; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes bounce-dots {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.glitch-text {
+  animation: glitch-text 8s ease-in-out infinite;
+}
+
+.tendril-pulse {
+  animation: tendril-pulse 3s ease-in-out infinite;
+}
+
+.symbiote-breathe {
+  animation: symbiote-breathe 4s ease-in-out infinite;
+}
+
+.animate-tendril-crawl {
+  stroke-dasharray: 1000;
+  animation: tendril-crawl 3s ease-in-out forwards;
+}
+
+.animate-tendril-assemble {
+  stroke-dasharray: 400;
+  animation: tendril-assemble 1.5s ease-out forwards;
+}
+
+/* Venom panel styling */
+.venom-panel {
+  background: var(--symbiote-panel);
+  border: var(--border-thin);
+  position: relative;
+  overflow: hidden;
+}
+
+.venom-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(244, 244, 246, 0.02) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+}
+
+/* Web-line border effect */
+.web-border-right {
+  border-right: var(--border-thin);
+  box-shadow: 1px 0 8px rgba(244, 244, 246, 0.04);
+}
+
+/* Organic clip-paths */
+.clip-organic-user {
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 95% 100%, 0 100%);
+}
+
+.clip-organic-assistant {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%, 0 85%);
+}
+
+/* Tendril hover effect */
+.tendril-hover {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.tendril-hover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--klyntar-green), transparent);
+  transition: width 0.3s ease;
+}
+
+.tendril-hover:hover::after {
+  width: 100%;
+}
+
+/* Focus styles */
+.venom-focus:focus {
+  outline: none;
+  border-color: rgba(244, 244, 246, 0.5);
+  box-shadow: 0 0 0 1px rgba(244, 244, 246, 0.2), 0 0 20px rgba(244, 244, 246, 0.05);
+}
+
+/* Loading dots */
+.loading-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--web-white);
+  animation: bounce-dots 1.4s ease-in-out infinite;
+}
+
+.loading-dot:nth-child(1) { animation-delay: 0s; }
+.loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Text selection */
+::selection {
+  background: rgba(0, 255, 102, 0.2);
+  color: var(--web-white);
+}
+
+/* Markdown prose reset inside chat */
+.prose-venom {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--web-white);
+}
+
+.prose-venom p { margin-bottom: 0.75rem; }
+.prose-venom p:last-child { margin-bottom: 0; }
+
+.prose-venom strong {
+  color: var(--web-white);
+  font-weight: 700;
+}
+
+.prose-venom em {
+  color: var(--web-dim);
+  font-style: italic;
+}
+
+.prose-venom code {
+  background: rgba(244, 244, 246, 0.07);
+  color: var(--klyntar-green);
+  padding: 0.1em 0.4em;
+  border-radius: 2px;
+  font-size: 0.85em;
+  border: 0.5px solid rgba(244, 244, 246, 0.1);
+}
+
+.prose-venom pre {
+  margin: 0.75rem 0;
+  border-radius: 2px;
+  overflow: hidden;
+  border: var(--border-thin);
+}
+
+.prose-venom pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+
+.prose-venom ul, .prose-venom ol {
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-venom li {
+  margin-bottom: 0.25rem;
+}
+
+.prose-venom li::marker {
+  color: var(--klyntar-green);
+}
+
+.prose-venom blockquote {
+  border-left: 2px solid rgba(244, 244, 246, 0.2);
+  padding-left: 1rem;
+  color: var(--web-muted);
+  font-style: italic;
+  margin: 0.75rem 0;
+}
+
+.prose-venom h1, .prose-venom h2, .prose-venom h3,
+.prose-venom h4, .prose-venom h5, .prose-venom h6 {
+  font-family: var(--font-heading);
+  color: var(--web-white);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+}
+
+.prose-venom a {
+  color: var(--klyntar-green);
+  text-decoration: none;
+  border-bottom: 0.5px solid rgba(0, 255, 102, 0.3);
+  transition: border-color 0.2s;
+}
+
+.prose-venom a:hover {
+  border-color: var(--klyntar-green);
+}
+
+.prose-venom table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+  font-size: 0.85em;
+}
+
+.prose-venom th, .prose-venom td {
+  padding: 0.4rem 0.75rem;
+  border: var(--border-thin);
+  text-align: left;
+}
+
+.prose-venom th {
+  background: rgba(244, 244, 246, 0.05);
+  color: var(--web-dim);
+  font-family: var(--font-heading);
+  font-size: 0.75em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.prose-venom hr {
+  border: none;
+  border-top: var(--border-thin);
+  margin: 1rem 0;
+}
