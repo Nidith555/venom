@@ -30,10 +30,10 @@ class VenomConfig(BaseSettings):
 
     # ── AI Engine ─────────────────────────────────────────────────────────────
     engine: str = Field(
-        default="ollama",
-        description="Inference backend: ollama | openai | anthropic | litellm",
+        default="gemini",
+        description="Inference backend: gemini | ollama | openai | anthropic | litellm",
     )
-    model: str = Field(default="llama3.2", description="Default model identifier")
+    model: str = Field(default="gemini-3.1-flash-lite", description="Default model identifier")
     ollama_url: str = Field(
         default="http://localhost:11434", description="Base URL of a local Ollama server"
     )
@@ -77,6 +77,16 @@ class VenomConfig(BaseSettings):
     )
 
     # ── Validators ────────────────────────────────────────────────────────────
+    @field_validator("gemini_api_key", mode="before")
+    @classmethod
+    def resolve_gemini_key(cls, v: str) -> str:
+        return v or os.environ.get("VENOM_GEMINI_API_KEY", "") or os.environ.get("GEMINI_API_KEY", "")
+
+    @field_validator("elevenlabs_api_key", mode="before")
+    @classmethod
+    def resolve_elevenlabs_key(cls, v: str) -> str:
+        return v or os.environ.get("VENOM_ELEVENLABS_API_KEY", "") or os.environ.get("ELEVENLABS_API_KEY", "")
+
     @field_validator("engine")
     @classmethod
     def validate_engine(cls, v: str) -> str:
