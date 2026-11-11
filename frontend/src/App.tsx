@@ -6,6 +6,7 @@ import { ChatWindow } from './components/ChatWindow';
 import { ChatInput } from './components/ChatInput';
 import { VoiceCallOverlay } from './components/VoiceCallOverlay';
 import { SymbioteLoader } from './components/SymbioteLoader';
+import { LaptopToolsView } from './components/LaptopToolsView';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useVoiceWake } from './hooks/useVoiceWake';
 import { useChatStore } from './store/chatStore';
@@ -171,31 +172,7 @@ export const App: React.FC = () => {
             </div>
           )}
 
-          {activeNav === 'tools' && (
-            <div className="flex-1 p-8 overflow-y-auto">
-              <h2 className="text-xl font-black tracking-widest font-['Orbitron'] mb-4 text-[#f4f4f6]">
-                SYMBIOTE EXTENSIONS & TOOLS
-              </h2>
-              <p className="text-xs text-[#f4f4f6]/50 mb-6">
-                Model Context Protocol (MCP) and built-in symbiote capabilities.
-              </p>
-              <div className="space-y-3">
-                {['Web Retrieval Engine', 'Voice Wake & Recognition', 'ElevenLabs Neural Vocalizer', 'File System I/O', 'Telemetry Monitor'].map(
-                  (tool) => (
-                    <div
-                      key={tool}
-                      className="bg-[#111214] border border-[#f4f4f6]/10 p-4 flex justify-between items-center"
-                    >
-                      <span className="text-xs font-bold font-mono">{tool}</span>
-                      <span className="text-[10px] text-[#00ff66] bg-[#00ff66]/10 px-2 py-0.5 uppercase tracking-widest border border-[#00ff66]/20">
-                        Bonded
-                      </span>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-          )}
+          {activeNav === 'tools' && <LaptopToolsView />}
 
           {activeNav === 'settings' && (
             <div className="flex-1 p-8 overflow-y-auto">

@@ -21,6 +21,7 @@ from audio.tts import ElevenLabsTTS
 from api.routes.chat import router as chat_router
 from api.routes.system import router as system_router
 from api.routes.audio import router as audio_router
+from api.routes.files import router as files_router
 
 logger = logging.getLogger("venom.app")
 
@@ -81,5 +82,6 @@ def create_app(config: VenomConfig | None = None) -> FastAPI:
     app.include_router(chat_router)
     app.include_router(system_router)
     app.include_router(audio_router)
+    app.include_router(files_router)
 
     return app

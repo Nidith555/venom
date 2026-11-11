@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Copy, Check, Volume2, Square } from 'lucide-react';
+import { Copy, Check, Volume2, Square, FileText } from 'lucide-react';
 import { Message, useChatStore } from '../store/chatStore';
 import { VenomLogo } from './VenomLogo';
 
@@ -101,6 +101,28 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               {copied ? <Check size={12} className="text-[#00ff66]" /> : <Copy size={12} />}
             </button>
           </div>
+
+          {/* Attached Files Badges */}
+          {message.files && message.files.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2.5">
+              {message.files.map((file, idx) => (
+                <div
+                  key={idx}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono border rounded ${
+                    isUser
+                      ? 'bg-black/10 border-black/20 text-black'
+                      : 'bg-[#00ff66]/10 border-[#00ff66]/30 text-[#00ff66]'
+                  }`}
+                >
+                  <FileText size={12} />
+                  <span className="font-semibold truncate max-w-[150px]">{file.filename}</span>
+                  <span className="opacity-60 text-[9px]">
+                    ({file.size_bytes > 1024 ? `${Math.round(file.size_bytes / 1024)}KB` : `${file.size_bytes}B`})
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Content */}
           <div className="markdown-body select-text pr-4">

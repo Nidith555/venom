@@ -1,12 +1,21 @@
 import { create } from 'zustand';
 import { getApiUrl } from '../config/api';
 
+export interface AttachedFile {
+  filename: string;
+  size_bytes: number;
+  is_text?: boolean;
+  preview?: string;
+  path?: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: string;
   streaming?: boolean;
+  files?: AttachedFile[];
 }
 
 export type VoiceStatus = 'idle' | 'listening' | 'detected' | 'processing' | 'speaking';
@@ -46,7 +55,8 @@ interface ChatStore {
   setVoiceStatus: (status: VoiceStatus) => void;
   speakMessage: (id: string, text: string) => Promise<void>;
   stopSpeaking: () => void;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, files?: AttachedFile[]) => Promise<void>;
+  uploadFiles: (files: FileList | File[]) => Promise<AttachedFile[]>;
   clearHistory: () => Promise<void>;
   fetchInitialState: () => Promise<void>;
 }
@@ -227,15 +237,56 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  sendMessage: async (content: string) => {
+  uploadFiles: async (fileList: FileList | File[]) => {
+    const formData = new FormData();
+    const filesArray = Array.from(fileList);
+    filesArray.forEach((f) => formData.append('files', f));
+
+    try {
+      const res = await fetch(getApiUrl('/api/files/upload'), {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return (data.files || []) as AttachedFile[];
+      }
+    } catch (err) {
+      console.warn('Backend file upload endpoint unavailable, falling back to local text reading:', err);
+    }
+
+    // Client-side fallback text extraction
+    const fallbackList: AttachedFile[] = [];
+    for (const f of filesArray) {
+      try {
+        const text = await f.text();
+        fallbackList.push({
+          filename: f.name,
+          size_bytes: f.size,
+          is_text: true,
+          preview: text.slice(0, 4000),
+        });
+      } catch {
+        fallbackList.push({
+          filename: f.name,
+          size_bytes: f.size,
+        });
+      }
+    }
+    return fallbackList;
+  },
+
+  sendMessage: async (content: string, files?: AttachedFile[]) => {
     const trimmed = content.trim();
-    if (!trimmed || get().isLoading) return;
+    if (!trimmed && (!files || files.length === 0)) return;
+    if (get().isLoading) return;
 
     const userMessage: Message = {
       id: `usr-${Date.now()}`,
       role: 'user',
-      content: trimmed,
+      content: trimmed || (files?.length ? `Attached ${files.length} file(s) for analysis.` : ''),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      files: files && files.length > 0 ? files : undefined,
     };
 
     const assistantId = `ast-${Date.now() + 1}`;
@@ -256,7 +307,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const ws = get().ws;
 
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ message: trimmed }));
+      ws.send(JSON.stringify({ message: trimmed, files }));
       return;
     }
 
@@ -264,7 +315,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const response = await fetch(getApiUrl('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmed, stream: true }),
+        body: JSON.stringify({ message: trimmed || 'Inspect attached files.', stream: true, files }),
       });
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);

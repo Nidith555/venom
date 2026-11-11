@@ -24,6 +24,7 @@ class SimpleChatRequest(BaseModel):
     message: str = Field(..., description="User prompt to the symbiote")
     stream: bool = Field(default=True, description="Whether to stream the response chunks")
     model: str | None = Field(default=None, description="Model override")
+    files: list[dict[str, Any]] | None = Field(default=None, description="Attached files metadata & content")
 
 
 class SimpleChatResponse(BaseModel):
@@ -58,7 +59,7 @@ async def chat_endpoint(payload: SimpleChatRequest, request: Request):
 
     if payload.stream:
         async def event_generator() -> AsyncGenerator[str, None]:
-            async for chunk in agent.chat(payload.message, stream=True):
+            async for chunk in agent.chat(payload.message, stream=True, files=payload.files):
                 # Send server-sent event
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
             yield "data: [DONE]\n\n"
@@ -74,7 +75,7 @@ async def chat_endpoint(payload: SimpleChatRequest, request: Request):
         )
     else:
         chunks = []
-        async for chunk in agent.chat(payload.message, stream=False):
+        async for chunk in agent.chat(payload.message, stream=False, files=payload.files):
             chunks.append(chunk)
         full_text = "".join(chunks)
         return SimpleChatResponse(
