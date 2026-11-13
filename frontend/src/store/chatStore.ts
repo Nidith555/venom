@@ -235,9 +235,21 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const mRes = await fetch(getApiUrl('/api/models'));
       if (mRes.ok) {
         const mData = await mRes.json();
+        const serverModels = mData.available_models || [mData.current_model];
+        // Combine server models with Claude and standard options, preserving uniqueness
+        const defaultModels = [
+          'gemini-3.1-flash-lite',
+          'claude-3.7-sonnet',
+          'claude-3.5-sonnet',
+          'claude-3.5-haiku',
+          'gemini-3.8-flash',
+          'llama3.2',
+          'gpt-4o',
+        ];
+        const combined = Array.from(new Set([...serverModels, ...defaultModels]));
         set({
-          availableModels: mData.available_models || [mData.current_model],
-          currentModel: mData.current_model || 'gemini-1.5-flash',
+          availableModels: combined,
+          currentModel: get().currentModel || mData.current_model || 'gemini-3.1-flash-lite',
         });
       }
     } catch {

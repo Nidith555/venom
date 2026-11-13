@@ -32,20 +32,22 @@ async def health_check(request: Request):
 
 @router.get("/api/models")
 async def list_models(request: Request):
-    """Retrieve all available models reported by the current inference engine."""
+    """Retrieve all available models supported across engines (Gemini, Claude, GPT, Ollama)."""
     agent: VenomAgent = request.app.state.agent
-    try:
-        res = agent.engine.get_models()
-        if hasattr(res, "__await__"):
-            models = await res
-        else:
-            models = res
-    except Exception as exc:
-        models = [agent.config.model]
+    all_models = [
+        "gemini-3.1-flash-lite",
+        "claude-3.7-sonnet",
+        "claude-3.5-sonnet",
+        "claude-3.5-haiku",
+        "gemini-3.8-flash",
+        "gemini-3.5-flash",
+        "gpt-4o",
+        "llama3.2",
+    ]
     return {
         "current_model": agent.config.model,
         "engine": agent.config.engine,
-        "available_models": models,
+        "available_models": all_models,
     }
 
 
