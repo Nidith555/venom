@@ -30,6 +30,10 @@ def create_engine(config: VenomConfig) -> InferenceEngine:
         from engine.gemini_engine import GeminiEngine
         return GeminiEngine(config)
 
+    elif engine_name in ("anthropic", "claude"):
+        from engine.anthropic_engine import AnthropicEngine
+        return AnthropicEngine(config)
+
     elif engine_name == "ollama":
         from engine.ollama_engine import OllamaEngine
         return OllamaEngine(config)

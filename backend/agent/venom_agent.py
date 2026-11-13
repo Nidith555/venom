@@ -174,16 +174,49 @@ class VenomAgent:
 
         return text, results
 
+    def _get_engine_for_model(self, model: str | None) -> InferenceEngine:
+        """
+        Dynamically dispatches to the correct inference engine based on requested model.
+        Supports seamless on-the-fly switching between Claude, Gemini, OpenAI, and Ollama.
+        """
+        if not model:
+            return self.engine
+
+        m = model.lower()
+        try:
+            if "claude" in m or "anthropic" in m:
+                from engine.anthropic_engine import AnthropicEngine
+                cfg = self.config.model_copy(update={"model": model}) if hasattr(self.config, "model_copy") else self.config
+                return AnthropicEngine(cfg)
+            elif "gemini" in m:
+                from engine.gemini_engine import GeminiEngine
+                cfg = self.config.model_copy(update={"model": model}) if hasattr(self.config, "model_copy") else self.config
+                return GeminiEngine(cfg)
+            elif "gpt" in m or "openai" in m:
+                from engine.openai_engine import OpenAIEngine
+                cfg = self.config.model_copy(update={"model": model}) if hasattr(self.config, "model_copy") else self.config
+                return OpenAIEngine(cfg)
+            elif "llama" in m or "qwen" in m or "deepseek" in m or "ollama" in m:
+                from engine.ollama_engine import OllamaEngine
+                cfg = self.config.model_copy(update={"model": model}) if hasattr(self.config, "model_copy") else self.config
+                return OllamaEngine(cfg)
+        except Exception as exc:
+            logger.warning("Error switching engine for %s: %s. Using default.", model, exc)
+
+        return self.engine
+
     async def chat(
         self,
         user_message: str,
         stream: bool = False,
         files: list[dict[str, Any]] | None = None,
+        model: str | None = None,
         **kwargs: Any,
     ) -> AsyncGenerator[str, None]:
         """
         Processes a user message, executes any needed laptop tools, and streams response chunks.
         """
+        active_engine = self._get_engine_for_model(model)
         effective_message = user_message
         if files:
             files_context = "\n\n[ATTACHED FILES FROM HOST]:\n"
@@ -208,7 +241,7 @@ class VenomAgent:
         initial_chunks: list[str] = []
 
         try:
-            async for chunk in self.engine.chat(messages, stream=stream, **kwargs):
+            async for chunk in active_engine.chat(messages, stream=stream, **kwargs):
                 initial_chunks.append(chunk)
 
             first_pass = "".join(initial_chunks)
@@ -233,7 +266,7 @@ class VenomAgent:
                 ]
 
                 complete_chunks: list[str] = []
-                async for chunk in self.engine.chat(follow_up_messages, stream=stream, **kwargs):
+                async for chunk in active_engine.chat(follow_up_messages, stream=stream, **kwargs):
                     complete_chunks.append(chunk)
                     yield chunk
 

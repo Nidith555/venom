@@ -66,7 +66,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   isLoading: false,
   isConnected: false,
   currentModel: 'gemini-3.1-flash-lite',
-  availableModels: ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-3.5-flash', 'llama3.2', 'gpt-4o'],
+  availableModels: [
+    'gemini-3.1-flash-lite',
+    'claude-3.7-sonnet',
+    'claude-3.5-sonnet',
+    'claude-3.5-haiku',
+    'gemini-3.8-flash',
+    'llama3.2',
+    'gpt-4o',
+  ],
   activeNav: 'chat',
   ws: null,
 
@@ -315,7 +323,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const response = await fetch(getApiUrl('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmed || 'Inspect attached files.', stream: true, files }),
+        body: JSON.stringify({
+          message: trimmed || 'Inspect attached files.',
+          stream: true,
+          model: get().currentModel,
+          files,
+        }),
       });
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);

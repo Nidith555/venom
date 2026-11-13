@@ -59,7 +59,7 @@ async def chat_endpoint(payload: SimpleChatRequest, request: Request):
 
     if payload.stream:
         async def event_generator() -> AsyncGenerator[str, None]:
-            async for chunk in agent.chat(payload.message, stream=True, files=payload.files):
+            async for chunk in agent.chat(payload.message, stream=True, files=payload.files, model=payload.model):
                 # Send server-sent event
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
             yield "data: [DONE]\n\n"
@@ -75,7 +75,7 @@ async def chat_endpoint(payload: SimpleChatRequest, request: Request):
         )
     else:
         chunks = []
-        async for chunk in agent.chat(payload.message, stream=False, files=payload.files):
+        async for chunk in agent.chat(payload.message, stream=False, files=payload.files, model=payload.model):
             chunks.append(chunk)
         full_text = "".join(chunks)
         return SimpleChatResponse(
